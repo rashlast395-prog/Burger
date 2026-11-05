@@ -232,6 +232,11 @@ async function pages_account(){
 function pages_page(){const pg=DB.pages.find(x=>x.slug===P.get("slug"));$("#main").innerHTML=pg?`<div class="container"><div class="prose"><h1>${esc(pg.title)}</h1>${pg.html}</div></div>`:`<div class="container empty">Page not found</div>`;if(pg)document.title=pg.title+" | "+S().name}
 function pages_help(){const f=DB.pages.find(x=>x.slug==="faq"),s=S();$("#main").innerHTML=`<div class="container"><div class="prose"><h1>Help Centre</h1>${f?f.html:""}<h2 id="contact" style="margin:30px 0 12px">Customer Service</h2><p>${ic("whatsapp",18)} WhatsApp: <a href="https://wa.me/${esc(s.whatsapp)}" style="color:var(--green-d);font-weight:700">${esc(s.phone)}</a></p><p>${ic("mail",18)} ${esc(s.email)}</p><p>${ic("pin",18)} ${esc(s.address)}</p><button class="btn" data-req style="margin-top:8px">Request a Part</button></div></div>`}
 
+function pages_track(){
+ $("#main").innerHTML=`<div class="container"><div class="prose"><h1>Track your order</h1><form class="form" id="tf" style="max-width:480px"><label>Order number<input name="id" required placeholder="e.g. MM1001"></label><label>Phone used when ordering<input name="phone" required type="tel"></label><div id="tr"></div><button class="btn">Track order</button></form></div></div>`;
+ $("#tf").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));try{const o=(await api("/track",{method:"POST",body:d})).order,steps=["Pending","Confirmed","Processing","Shipped","Delivered"],ix=steps.indexOf(o.status);
+  $("#tr").innerHTML=`<div class="box"><b>${esc(o.id)}</b> <span class="pill ${esc(o.status)}">${esc(o.status)}</span><div style="display:flex;gap:6px;margin:14px 0">${steps.map((s,i)=>`<div style="flex:1;text-align:center;font-size:12px"><div style="height:6px;border-radius:3px;background:${i<=ix?"var(--green)":"#e5e7eb"};margin-bottom:6px"></div>${s}</div>`).join("")}</div>${o.items.map(i=>`<div class="sumrow" style="padding:3px 0;font-size:14px"><span>${i.qty} × ${esc(i.name)}</span><b>${fmt(i.price*i.qty)}</b></div>`).join("")}<div class="sumrow t"><span>Total</span><span>${fmt(o.total)}</span></div></div>`}catch(er){$("#tr").innerHTML=`<div class="err">${esc(er.message)}</div>`}}}
+
 /* ---------- login / register ---------- */
 function pages_login(){
  const nxt=P.get("next")||"index.html";let mode=P.get("mode")==="register"?"register":"login";
@@ -260,7 +265,7 @@ function pages_login(){
  theme();
  if(page==="login"){pages_login();return}
  shell();
- const fn={home:pages_home,shop:pages_shop,product:pages_product,cart:pages_cart,checkout:pages_checkout,wishlist:pages_wishlist,account:pages_account,page:pages_page,help:pages_help}[page];
+ const fn={home:pages_home,shop:pages_shop,product:pages_product,cart:pages_cart,checkout:pages_checkout,wishlist:pages_wishlist,account:pages_account,track:pages_track,page:pages_page,help:pages_help}[page];
  if(fn)fn();
  if(OFFLINE){const b=document.createElement("div");b.style.cssText="background:#fff4d6;color:#7a5b00;text-align:center;padding:6px;font-size:13px";b.textContent="Preview mode – run “node server.js” for accounts, orders and the admin panel.";document.body.prepend(b)}
 })();

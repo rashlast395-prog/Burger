@@ -11,6 +11,7 @@ async function api(p,o={}){
 const save=async k=>{await api("/db/"+k,{method:"PUT",body:{value:D[k]}});toast("Saved – live on the storefront")};
 function toast(m,bad){let t=$("#toast");if(!t){t=document.createElement("div");t.id="toast";t.className="toast";document.body.appendChild(t)}t.textContent=m;t.style.background=bad?"#b4233a":"#000";t.classList.add("on");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("on"),2400)}
 const money=n=>(D.settings.currency||"GH₵")+" "+Number(n||0).toLocaleString();
+const shrink=src=>new Promise(res=>{if(/gif$/.test(src.slice(0,20))){return res(src)}const i=new Image();i.onload=()=>{const k=Math.min(1,1600/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.85))};i.onerror=()=>res(src);i.src=src});
 const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 
 /* ---------- schemas ---------- */
@@ -101,7 +102,7 @@ function crud(k){
    return `<label ${f==="title"||f==="name"||f==="text"?'class="full"':""}>${lab}${hint}<input name="${f}" value="${esc(v)}"></label>`};
   const m=modal(`<h3>${nw?"Add":"Edit"} ${sc.label.replace(/s$/,"")}</h3><form id="ef"><div class="fg">${sc.f.map(a=>fld(a)).join("")}</div><div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end"><button type="button" class="btn out" data-x>Cancel</button><button class="btn">Save</button></div></form>`);
   $$("[data-up]",m).forEach(b=>{const f=b.dataset.up,fi=$("#fi_"+f,m);b.onclick=()=>fi.click();
-   fi.onchange=()=>{const file=fi.files[0];if(!file)return;if(file.size>6e6)return toast("Image too large (max 6 MB)",1);const r=new FileReader();r.onload=async()=>{try{const j=await api("/upload",{method:"POST",body:{data:r.result}});$(`[name=${f}]`,m).value=j.url;$("#pv_"+f,m).src=url(j.url);toast("Image uploaded")}catch(er){toast(er.message,1)}};r.readAsDataURL(file)}});
+   fi.onchange=()=>{const file=fi.files[0];if(!file)return;if(file.size>6e6)return toast("Image too large (max 6 MB)",1);const r=new FileReader();r.onload=async()=>{try{const j=await api("/upload",{method:"POST",body:{data:await shrink(r.result)}});$(`[name=${f}]`,m).value=j.url;$("#pv_"+f,m).src=url(j.url);toast("Image uploaded")}catch(er){toast(er.message,1)}};r.readAsDataURL(file)}});
   $("[name=image]",m)&&($("[name=image]",m).oninput=e=>{$("#pv_image",m).src=url(e.target.value)});
   $("#ef").onsubmit=async e=>{e.preventDefault();const fd=new FormData(e.target);
    sc.f.forEach(([f,t])=>{x[f]=t==="bool"?fd.get(f)==="on":t==="num"?Number(fd.get(f)||0):(fd.get(f)||"").trim?(fd.get(f)||"").trim():fd.get(f)});
