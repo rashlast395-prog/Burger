@@ -267,6 +267,6 @@ function pages_login(){
  shell();
  const fn={home:pages_home,shop:pages_shop,product:pages_product,cart:pages_cart,checkout:pages_checkout,wishlist:pages_wishlist,account:pages_account,track:pages_track,page:pages_page,help:pages_help}[page];
  if(fn)fn();
- if(OFFLINE){const b=document.createElement("div");b.style.cssText="background:#fff4d6;color:#7a5b00;text-align:center;padding:6px;font-size:13px";b.textContent="Preview mode – run “node server.js” for accounts, orders and the admin panel.";document.body.prepend(b)}
+ if(OFFLINE){const b=document.createElement("div");b.style.cssText="background:#fff4d6;color:#7a5b00;text-align:center;padding:6px;font-size:13px";b.textContent="Demo mode – the store database is not connected yet, so accounts, orders and admin edits are disabled.";document.body.prepend(b)}
 })();
 })();
