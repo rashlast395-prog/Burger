@@ -28,16 +28,19 @@ const img=(src,catId,alt)=>src?`<img src="${esc(url(src))}" alt="${esc(alt||"")}
 const flag=c=>c?`<img class="flag" src="https://flagcdn.com/w40/${esc(c)}.png" alt="" loading="lazy" onerror="this.style.display='none'">`:"";
 
 function card(p){const o=pct(p),inW=wish.includes(p.id);
- return `<div class="card"><div class="pimg" data-go="${p.id}">${o?`<span class="off">${o}% Off</span>`:""}
+ return `<div class="card"><div class="pimg" data-go="${p.id}" style="${p.bg?"background:"+esc(p.bg):""}">${o?`<span class="off">${o}% Off</span>`:""}
  <button class="wishb ${inW?"on":""}" data-wish="${p.id}" aria-label="Add to wishlist">${ic("heart",18)}</button>${img(p.image,p.cat,p.name)}
  <button class="addbtn" data-add="${p.id}" aria-label="Add to cart" ${p.stock<=0?"disabled style='opacity:.4'":""}>${ic("cartplus",24)}</button></div>
  <div class="pname" data-go="${p.id}" title="${esc(p.name)}">${esc(p.name)}</div>
  <div class="price">${fmt(p.price)}${p.old>p.price?`<s>${fmt(p.old)}</s>`:""}</div>
  ${p.stock<=0?`<div class="oos">Out of stock</div>`:""}
- <div class="pts"><b>MOTORPOINTS</b> ${(p.price*S().pointsRate).toLocaleString()} Points</div></div>`}
+ <div class="pts"><b>MOTORPOINTS</b> ${(p.price*S().pointsRate).toLocaleString()} Points</div>
+ <button class="buynow" data-buy="${p.id}" ${p.stock<=0?"disabled":""}>Buy Now</button></div>`}
 const secHead=(t,right)=>`<div class="sec-head"><div><h2 class="sec-title">${esc(t)}</h2><div class="bar"><i></i><i></i><i></i></div></div>${right||""}</div>`;
 const viewAll=u=>`<a class="viewall" href="${u}">View All ${ic("arrow",22)}</a>`;
 const active=a=>a.filter(x=>x.active!==false);
+const liveCats=()=>active(DB.categories).filter(c=>DB.products.some(p=>p.cat===c.id&&p.active!==false));
+const liveBrands=()=>active(DB.brands).filter(b=>DB.products.some(p=>p.brand===b.id&&p.active!==false));
 
 function toast(m){let t=$("#toast");if(!t){t=document.createElement("div");t.id="toast";t.className="toast";document.body.appendChild(t)}t.textContent=m;t.classList.add("on");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("on"),2200)}
 const saveCart=()=>{ls.set("mm_cart",cart);badge()};
@@ -47,6 +50,7 @@ function addToCart(id,q){const p=prod(id);if(!p||p.stock<=0)return toast("Sorry,
 function toggleWish(id){wish=wish.includes(id)?wish.filter(x=>x!==id):[...wish,id];ls.set("mm_wish",wish);badge();$$(`[data-wish="${id}"]`).forEach(b=>b.classList.toggle("on",wish.includes(id)));toast(wish.includes(id)?"Saved to wishlist":"Removed from wishlist")}
 
 document.addEventListener("click",e=>{
+ const bn=e.target.closest("[data-buy]");if(bn){e.stopPropagation();addToCart(bn.dataset.buy);return location.href="checkout.html"}
  const a=e.target.closest("[data-add]");if(a){e.stopPropagation();return addToCart(a.dataset.add)}
  const w=e.target.closest("[data-wish]");if(w){e.stopPropagation();return toggleWish(w.dataset.wish)}
  const g=e.target.closest("[data-go]");if(g)return location.href="product.html?id="+g.dataset.go;
@@ -60,7 +64,7 @@ function logo(){return `<a class="logo" href="index.html"><svg class="logo-mark"
 function theme(){const s=S();document.documentElement.style.setProperty("--green",s.green);document.documentElement.style.setProperty("--green-d",s.green);document.title=document.title.replace(/MotorMate Ghana/,s.name)}
 function topbar(){const s=S(),msgs=[`${esc(s.topbarText)} <a class="tel" href="https://wa.me/${esc(s.whatsapp)}">${esc(s.phone)}</a>`,...active(DB.announcements).map(a=>`<a href="${esc(a.link||"#")}">${esc(a.text)}</a>`)];
  return `<div class="topbar"><div class="tb-msg" id="tbMsg">${msgs[0]}</div><a class="pillbtn" href="#request" data-req>${ic("gift",20)} ${esc(s.topbarButton)}</a></div>`+`<script type="application/json" id="tbData">${JSON.stringify(msgs).replace(/</g,"\\u003c")}</script>`}
-function header(){const s=S(),groups={};active(DB.categories).forEach(c=>(groups[c.group||"Parts"]=groups[c.group||"Parts"]||[]).push(c));
+function header(){const s=S(),groups={};liveCats().forEach(c=>(groups[c.group||"Parts"]=groups[c.group||"Parts"]||[]).push(c));
  return topbar()+`<header class="header"><div class="container hdr">${logo()}
  <form class="search" id="sf"><input id="q" type="search" placeholder='Try "Toyota Corolla brake pads under GH₵400"' value="${esc(P.get("q")||"")}"><button type="button" class="chip" data-req title="Find a part by VIN">VIN</button><span class="sparkle">${ic("sparkle",26)}</span><button class="go">Search</button></form>
  <div class="hactions"><a class="hact" href="${ls.get("mm_token",null)?"account.html":"login.html"}">${ic("user",30)}<span class="lbl">${ls.get("mm_user",null)?esc(ls.get("mm_user").name.split(" ")[0]):"Sign In"}</span></a>
@@ -69,8 +73,8 @@ function header(){const s=S(),groups={};active(DB.categories).forEach(c=>(groups
  <a class="hact" href="cart.html">${ic("cart",30)}<span class="lbl">My Cart</span><b class="cnt" id="cartCnt"></b></a></div></div>
  <div class="navbar"><div class="navwrap"><button class="allcat" id="allcat">${ic("menu",30)}<span>All Categories</span>${ic("chevd",26)}</button>
  <nav class="navlinks">${(s.navLinks||[]).map(l=>`<a href="${esc(l.url)}">${esc(l.label)}</a>`).join("")}</nav></div>
- <div class="mega" id="mega">${Object.keys(groups).map(g=>`<h6>${esc(g)}</h6>`+groups[g].map(c=>`<a href="shop.html?cat=${c.id}"><span>${ic(c.icon,22)}${esc(c.name)}</span>${ic("chevr",20)}</a>`).join("")).join("")}
- <h6>Shop by Brand</h6>${active(DB.brands).slice(0,12).map(b=>`<a href="shop.html?brand=${b.id}"><span>${flag(b.flag)}${esc(b.name)}</span>${ic("chevr",20)}</a>`).join("")}</div></div></header>`}
+ <div class="mega" id="mega">${Object.keys(groups).map(g=>`<h6>${esc(g)}</h6>`+groups[g].map(c=>`<a href="shop.html?cat=${c.id}"><span>${esc(c.name)}</span>${ic("chevr",20)}</a>`).join("")).join("")}
+ <h6>Shop by Brand</h6>${liveBrands().map(b=>`<a href="shop.html?brand=${b.id}"><span>${esc(b.name)}</span>${ic("chevr",20)}</a>`).join("")}</div></div></header>`}
 function footer(){const s=S(),f=s.footer||{},col=(t,l)=>`<div><h4>${t}</h4>${(l||[]).map(x=>`<a href="${esc(x.url)}">${esc(x.label)}</a>`).join("")}</div>`;
  return `<footer class="footer"><div class="container fgrid">${col("Account",f.account)}${col("Need help?",f.help)}${col("Marketplace",f.market)}</div><div class="copy">${esc(s.copyright)}</div></footer>
  <nav class="mobnav"><a href="index.html">${ic("grid",22)}Home</a><a href="shop.html">${ic("menu",22)}Categories</a><a href="help.html">${ic("help",22)}Help</a><a href="${ls.get("mm_token",null)?"account.html":"login.html"}">${ic("user",22)}Account</a></nav>
@@ -105,7 +109,7 @@ function openReq(){
 /* ---------- home ---------- */
 function slider(){
  const sl=active(DB.slides);if(!sl.length)return "";
- return `<section class="container hero"><div class="slider" id="slider">${sl.map((s,i)=>`<div class="slide ${i?"":"on"}" style="background-image:url('${esc(url(s.image))}')"><div class="sc"><h2>${esc(s.title)}</h2><p>${esc(s.subtitle)}</p><a class="shopnow" href="${esc(s.link||"shop.html")}">${esc(s.button||"Shop Now")}</a></div></div>`).join("")}
+ return `<section class="container hero"><div class="slider" id="slider">${sl.map((s,i)=>`<div class="slide ${i?"":"on"}" style="background-image:url('${esc(url(s.image))}')"><div class="sc"><h2>${esc(s.title)}</h2><p>${esc(s.subtitle)}</p><a class="shopnow" href="${esc(s.link||"shop.html")}">${esc(s.button||"Shop Now")}</a></div><div class="collage">${String(s.products||"").split(",").map(x=>prod(x.trim())).filter(Boolean).map((p,k)=>`<a class="ctile t${k}" href="product.html?id=${p.id}" style="${p.bg?"background:"+esc(p.bg):""}"><img src="${esc(url(p.image))}" alt="${esc(p.name)}"><span>${esc(p.name.split(" ").slice(0,4).join(" "))}</span></a>`).join("")}</div></div>`).join("")}
  <button class="sl-arrow l" aria-label="Previous">${ic("chevl",22)}</button><button class="sl-arrow r" aria-label="Next">${ic("chevr",22)}</button></div><div class="dots">${sl.map((_,i)=>`<i class="${i?"":"on"}" data-i="${i}"></i>`).join("")}</div></section>`}
 function initSlider(){const el=$("#slider");if(!el)return;const sl=$$(".slide",el),dots=$$(".dots i");let c=0,t;
  const go=i=>{c=(i+sl.length)%sl.length;sl.forEach((s,k)=>s.classList.toggle("on",k===c));dots.forEach((d,k)=>d.classList.toggle("on",k===c))};
@@ -114,17 +118,17 @@ function initSlider(){const el=$("#slider");if(!el)return;const sl=$$(".slide",e
  let x0=null;el.addEventListener("touchstart",e=>x0=e.touches[0].clientX,{passive:true});el.addEventListener("touchend",e=>{if(x0==null)return;const dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>40){go(c+(dx<0?1:-1));auto()}x0=null});
  el.onmouseenter=()=>clearInterval(t);el.onmouseleave=auto;auto()}
 function sectionProducts(sec){let l=active(DB.products);const[k,v]=String(sec.source).split(":");
- if(k==="discount")l=l.filter(p=>p.old>p.price).sort((a,b)=>pct(b)-pct(a));else if(k==="cat")l=l.filter(p=>p.cat===v);else if(k==="brand")l=l.filter(p=>p.brand===v);else if(k==="featured")l=l.filter(p=>p.featured);
+ if(k==="discount")l=l.filter(p=>p.old>p.price).sort((a,b)=>pct(b)-pct(a));else if(k==="cat")l=l.filter(p=>v.split(",").includes(p.cat));else if(k==="brand")l=l.filter(p=>p.brand===v);else if(k==="featured")l=l.filter(p=>p.featured);
  return l.slice(0,sec.limit||8)}
-function secUrl(sec){const[k,v]=String(sec.source).split(":");return k==="discount"?"shop.html?deals=1":k==="cat"?"shop.html?cat="+v:k==="brand"?"shop.html?brand="+v:"shop.html"}
+function secUrl(sec){const[k,v]=String(sec.source).split(":");return k==="discount"?"shop.html?deals=1":k==="cat"?"shop.html?cat="+v.split(",")[0]:k==="brand"?"shop.html?brand="+v:"shop.html"}
 function pages_home(){
- const m=$("#main"),s=S(),cats=active(DB.categories);
+ const m=$("#main"),s=S(),cats=liveCats();
  const maxOff=Math.max(0,...DB.products.map(pct));
  let h=slider();
  h+=`<section class="container sec">${secHead("Shop by Category","")}<div class="hscroll cats" id="cats"><a class="cat" href="shop.html?deals=1"><div class="ci"><div class="tile promo"><small>Up to ${maxOff}% OFF</small>Black<br>November</div></div>Save up to 30%</a>${cats.map((c,i)=>`<a class="cat" href="shop.html?cat=${c.id}"><div class="ci">${img(c.image,c.id,c.name)}</div>${esc(c.name)}</a>`).join("")}</div></section>`;
  active(DB.sections).forEach(sec=>{const l=sectionProducts(sec);if(l.length)h+=`<section class="container sec">${secHead(sec.title,viewAll(secUrl(sec)))}<div class="products">${l.map(card).join("")}</div></section>`});
  h+=`<section class="container sec">${secHead("Shop by Brand",`<div class="arrows"><button data-scroll="brs" data-dir="-1" aria-label="Previous">${ic("chevl",18)}</button><button data-scroll="brs" data-dir="1" aria-label="Next">${ic("chevr",18)}</button></div>`)}
- <div class="hscroll brands" id="brs">${active(DB.brands).map(b=>`<a class="brand" href="shop.html?brand=${b.id}"><div class="bi"><div class="wordmark">${esc(b.name)}</div>${flag(b.flag)}</div>${esc(b.name)}<br><small>${esc(b.country)}</small></a>`).join("")}</div></section>`;
+ <div class="hscroll brands" id="brs">${liveBrands().map(b=>`<a class="brand" href="shop.html?brand=${b.id}"><div class="bi"><div class="wordmark">${esc(b.name)}</div>${flag(b.flag)}</div>${esc(b.name)}<br><small>${esc(b.country)}</small></a>`).join("")}</div></section>`;
  h+=`<section class="container discover"><h2 class="sec-title" style="font-size:30px">Discover More</h2><p>Find the latest releases, offers and exclusives right here</p><div class="dgrid">${active(DB.banners).map(b=>`<a class="dban" href="${esc(b.link||"shop.html")}" style="background-image:url('${esc(url(b.image))}')"><div><small>MotorMate Black November</small>${esc(b.title)}</div></a>`).join("")}</div>
  <div class="deal"><h3>${esc(s.dealTitle)}</h3><div class="timer" id="timer"></div></div>
  <div class="promos">${cats.slice(0,5).map(c=>{const mx=Math.max(0,...DB.products.filter(p=>p.cat===c.id).map(pct));return `<a href="shop.html?cat=${c.id}">${ic(c.icon,30)}${esc(c.name)}<span>${mx?`Up to ${mx}% Off`:"Shop now"}</span></a>`}).join("")}</div></section>`;
@@ -139,12 +143,12 @@ function pages_home(){
 /* ---------- shop ---------- */
 function pages_shop(){
  const m=$("#main");let st={q:P.get("q")||"",cat:P.get("cat")||"",brands:P.get("brand")?P.get("brand").split(","):[],countries:P.get("country")?P.get("country").split(","):[],deals:P.get("deals")==="1",sort:P.get("sort")||"rel",min:P.get("min")||"",max:P.get("max")||"",stock:false,n:24};
- const countries=[...new Set(DB.brands.map(b=>b.country))];
+ const countries=[...new Set(liveBrands().map(b=>b.country))];
  m.innerHTML=`<div class="container"><div class="crumbs"><a href="index.html">Home</a> / <span id="crumb">Shop</span></div><div class="shop"><aside class="side" id="side"></aside><div><div class="toolbar"><div><h1 style="font-size:24px" id="ttl"></h1><span id="cnt" style="color:var(--mut);font-size:14px"></span></div><div style="display:flex;gap:10px"><button class="btn out sm filtbtn" id="fb">${ic("funnel",16)} Filters</button><select id="sort"><option value="rel">Sort: Featured</option><option value="disc">Biggest discount</option><option value="lo">Price: low to high</option><option value="hi">Price: high to low</option><option value="az">Name A–Z</option></select></div></div><div class="pgrid" id="pg"></div><button class="loadmore" id="lm">Load More</button></div></div></div>`;
  const side=$("#side");
  function drawSide(){side.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">Filters</b><button class="filtbtn" id="sx">${ic("x",22)}</button></div>
- <h5>Category</h5><div class="scr"><label><input type="radio" name="c" value="" ${!st.cat?"checked":""}> All categories</label>${active(DB.categories).map(c=>`<label><input type="radio" name="c" value="${c.id}" ${st.cat===c.id?"checked":""}> ${esc(c.name)}</label>`).join("")}</div>
- <h5>Brand</h5><div class="scr">${active(DB.brands).map(b=>`<label><input type="checkbox" data-b="${b.id}" ${st.brands.includes(b.id)?"checked":""}> ${esc(b.name)}</label>`).join("")}</div>
+ <h5>Category</h5><div class="scr"><label><input type="radio" name="c" value="" ${!st.cat?"checked":""}> All categories</label>${liveCats().map(c=>`<label><input type="radio" name="c" value="${c.id}" ${st.cat===c.id?"checked":""}> ${esc(c.name)}</label>`).join("")}</div>
+ <h5>Brand</h5><div class="scr">${liveBrands().map(b=>`<label><input type="checkbox" data-b="${b.id}" ${st.brands.includes(b.id)?"checked":""}> ${esc(b.name)}</label>`).join("")}</div>
  <h5>Country of origin</h5>${countries.map(c=>`<label><input type="checkbox" data-co="${esc(c)}" ${st.countries.includes(c)?"checked":""}> ${flag((DB.brands.find(b=>b.country===c)||{}).flag)} ${esc(c)}</label>`).join("")}
  <h5>Price (${esc(S().currency)})</h5><div class="rng"><input id="mn" type="number" placeholder="Min" value="${esc(st.min)}"><input id="mx" type="number" placeholder="Max" value="${esc(st.max)}"></div>
  <h5>Availability</h5><label><input type="checkbox" id="stk" ${st.stock?"checked":""}> In stock only</label><label><input type="checkbox" id="dl" ${st.deals?"checked":""}> On discount</label>
@@ -175,7 +179,7 @@ function pages_product(){
  const b=brand(p.brand)||{},c=cat(p.cat)||{},o=pct(p);document.title=p.name+" | "+S().name;let q=1;
  const rel=active(DB.products).filter(x=>x.cat===p.cat&&x.id!==p.id).slice(0,8);
  m.innerHTML=`<div class="container"><div class="crumbs"><a href="index.html">Home</a> / <a href="shop.html?cat=${esc(p.cat)}">${esc(c.name)}</a> / ${esc(p.name)}</div>
- <div class="pd"><div class="pd-img">${img(p.image,p.cat,p.name)}</div><div><div class="meta"><span>${ic(c.icon,18)} ${esc(c.name)}</span><span>Brand: <b>${esc(b.name)}</b></span><span>${flag(b.flag)} Made by a <b>${esc(b.country)}</b> brand</span></div>
+ <div class="pd"><div class="pd-img" style="${p.bg?"background:"+esc(p.bg):""}">${img(p.image,p.cat,p.name)}</div><div><div class="meta"><a href="shop.html?cat=${esc(p.cat)}">${ic(c.icon,18)} <b style="color:var(--green-d)">${esc(c.name)}</b></a><a href="shop.html?brand=${esc(p.brand)}">Brand: <b style="color:var(--green-d)">${esc(b.name)}</b></a><a href="shop.html?country=${encodeURIComponent(b.country)}">${flag(b.flag)} Origin: <b style="color:var(--green-d)">${esc(b.country)}</b></a></div>
  <h1>${esc(p.name)}</h1><div class="pd-price">${fmt(p.price)}${p.old>p.price?`<s>${fmt(p.old)}</s><span class="off">${o}% Off</span>`:""}</div>
  <div class="pts"><b>MOTORPOINTS</b> Earn ${(p.price*S().pointsRate).toLocaleString()} Points</div>
  <p style="margin-top:12px;font-weight:600;color:${p.stock>0?"var(--green-d)":"var(--red)"}">${p.stock>0?(p.stock<6?`Only ${p.stock} left in stock`:"In stock"):"Out of stock"}</p>
